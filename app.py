@@ -34,23 +34,177 @@ def ask_ai(system_prompt: str, user_prompt: str, temperature: float = 0.4, max_t
 
 
 # ---------------------------------------------------------------------------
-# Styling
+# Styling — "floodlit night match" design system
+# Palette: night-navy pitch, turf green, floodlight amber, chalk white, scoreboard red
+# Type: Oswald (scoreboard/signage display), Inter (body), JetBrains Mono (data feed)
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-.metric-card {background:#111827;border-radius:12px;padding:16px;color:white;text-align:center;}
-.status-critical {color:#ef4444;font-weight:700;}
-.status-busy {color:#f59e0b;font-weight:700;}
-.status-normal {color:#10b981;font-weight:700;}
-.pill {display:inline-block;padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;}
-.pill-high{background:#fee2e2;color:#b91c1c;}
-.pill-medium{background:#fef3c7;color:#92400e;}
-.pill-low{background:#dcfce7;color:#166534;}
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+    --night:      #0B1220;
+    --surface:    #121C30;
+    --surface-2:  #17233B;
+    --line:       #223046;
+    --turf:       #1F9D55;
+    --turf-glow:  #29C46B;
+    --amber:      #F5B942;
+    --chalk:      #F3F6F1;
+    --slate:      #8291AC;
+    --red:        #E8483C;
+}
+
+[data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse 900px 500px at 15% -10%, rgba(245,185,66,0.10), transparent 60%),
+        radial-gradient(ellipse 900px 500px at 85% -10%, rgba(31,157,85,0.12), transparent 60%),
+        var(--night);
+}
+[data-testid="stHeader"] { background: transparent; }
+.block-container { padding-top: 1.5rem; max-width: 1200px; }
+
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: var(--chalk); }
+h1, h2, h3, .stadium-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
+code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+.hero {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--turf);
+    border-radius: 10px;
+    padding: 22px 28px;
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+.hero-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 2.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--chalk);
+    margin: 0;
+    line-height: 1.1;
+}
+.hero-title span { color: var(--turf-glow); }
+.hero-sub {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--slate);
+    font-size: 0.85rem;
+    margin-top: 6px;
+    letter-spacing: 0.03em;
+}
+.hero-clock { text-align: right; border-left: 1px solid var(--line); padding-left: 20px; }
+.hero-clock .label { font-size: 0.7rem; color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase; }
+.hero-clock .value { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--amber); }
+
+.stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid var(--line); }
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: var(--slate);
+    background: transparent;
+    border-radius: 6px 6px 0 0;
+    padding: 10px 16px;
+}
+.stTabs [aria-selected="true"] {
+    color: var(--chalk) !important;
+    background: var(--surface) !important;
+    border-bottom: 2px solid var(--turf-glow) !important;
+}
+
+.stButton > button {
+    background: var(--turf);
+    color: var(--night);
+    border: none;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 0.5rem 1.2rem;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+.stButton > button:hover { background: var(--turf-glow); transform: translateY(-1px); }
+
+.stTextInput input, .stTextArea textarea, .stSelectbox [data-baseweb="select"] {
+    background: var(--surface) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--chalk) !important;
+    border-radius: 6px !important;
+}
+
+.seat-tile {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 12px;
+    margin-bottom: 14px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.seat-tile.normal   { border-color: var(--turf); box-shadow: inset 0 0 0 1px rgba(31,157,85,0.15); }
+.seat-tile.busy     { border-color: var(--amber); box-shadow: 0 0 14px rgba(245,185,66,0.25); }
+.seat-tile.critical { border-color: var(--red); box-shadow: 0 0 18px rgba(232,72,60,0.35); animation: pulse-glow 1.8s ease-in-out infinite; }
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(232,72,60,0.25); }
+    50%      { box-shadow: 0 0 22px rgba(232,72,60,0.55); }
+}
+.seat-tile .zone { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--slate); text-transform: uppercase; letter-spacing: 0.05em; }
+.seat-tile .density { font-family: 'Oswald', sans-serif; font-size: 1.9rem; font-weight: 700; margin: 4px 0; color: var(--chalk); }
+.seat-tile .status-tag { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.seat-tile.normal .status-tag   { color: var(--turf-glow); }
+.seat-tile.busy .status-tag     { color: var(--amber); }
+.seat-tile.critical .status-tag { color: var(--red); }
+
+.pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
+.pill-high   { background:rgba(232,72,60,0.15); color:#F0796F; border:1px solid rgba(232,72,60,0.4); }
+.pill-medium { background:rgba(245,185,66,0.15); color:var(--amber); border:1px solid rgba(245,185,66,0.4); }
+.pill-low    { background:rgba(31,157,85,0.15); color:var(--turf-glow); border:1px solid rgba(31,157,85,0.4); }
+
+[data-testid="stAlert"] {
+    background: var(--surface) !important;
+    border: 1px solid var(--line) !important;
+    border-left: 3px solid var(--turf-glow) !important;
+    border-radius: 6px !important;
+}
+
+.quickfacts { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
+.quickfacts h4 { font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:0.85rem; letter-spacing:0.06em; color:var(--amber); margin-top:0; }
+
+footer, #MainMenu { visibility: hidden; }
+.stadium-footer {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--slate);
+    font-size: 0.75rem;
+    text-align: center;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    margin-top: 30px;
+    letter-spacing: 0.03em;
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🏟️ StadionAI — GenAI Copilot for Smart Stadiums")
-st.caption(f"{sd.STADIUM_NAME} · {sd.MATCH_INFO['fixture']} · Kickoff {sd.MATCH_INFO['kickoff']} · Capacity {sd.MATCH_INFO['capacity']:,}")
+st.markdown(f"""
+<div class="hero">
+    <div>
+        <div class="hero-title">STADION<span>AI</span></div>
+        <div class="hero-sub">GENAI COPILOT · SMART STADIUMS &amp; TOURNAMENT OPS</div>
+    </div>
+    <div class="hero-clock">
+        <div class="label">{sd.MATCH_INFO['fixture']}</div>
+        <div class="value">⏱ {sd.MATCH_INFO['kickoff']}</div>
+        <div class="label">{sd.STADIUM_NAME} · CAP {sd.MATCH_INFO['capacity']:,}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 if client is None:
     st.info("Running in demo mode (no GROQ_API_KEY set) — UI and logic are fully functional, "
@@ -82,31 +236,37 @@ with tabs[0]:
                 answer = ask_ai(system, f"VENUE DATA:\n{context}\n\nFAN QUESTION: {query}")
             st.success(answer)
     with col2:
-        st.markdown("**Quick facts**")
+        facts_html = "<div class='quickfacts'><h4>Quick facts</h4><ul style='padding-left:18px;margin:0'>"
         for k in ["Gate 1", "Accessible seating", "First Aid", "Lost & Found"]:
-            st.markdown(f"- **{k}**: {sd.LOCATIONS[k]}")
+            facts_html += f"<li style='margin-bottom:8px'><b>{k}</b>: {sd.LOCATIONS[k]}</li>"
+        facts_html += "</ul></div>"
+        st.markdown(facts_html, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # TAB 2 — Crowd & Safety
 # ---------------------------------------------------------------------------
 with tabs[1]:
     st.subheader("Live crowd density (simulated feed)")
+    st.caption("Each tile is a stadium zone — glow intensity mirrors real crowd pressure, like floodlit seating blocks at night.")
     zones = sd.get_zones()
     cols = st.columns(4)
     for i, z in enumerate(zones):
         with cols[i % 4]:
-            css_class = f"status-{z['status']}"
-            st.markdown(f"""<div class="metric-card">
-                <div style="font-size:0.85rem;opacity:0.8">{z['zone']}</div>
-                <div style="font-size:1.6rem;font-weight:700">{z['density']}%</div>
-                <div class="{css_class}">{z['status'].upper()}</div>
+            st.markdown(f"""<div class="seat-tile {z['status']}">
+                <div class="zone">{z['zone']}</div>
+                <div class="density">{z['density']}%</div>
+                <div class="status-tag">{z['status']}</div>
                 </div>""", unsafe_allow_html=True)
 
-    st.markdown("### Active incidents")
+    st.markdown("<h3 style='margin-top:28px'>Active incidents</h3>", unsafe_allow_html=True)
     for inc in sd.get_incidents():
         pill_class = f"pill-{inc['severity']}"
-        st.markdown(f"`{inc['time']}` **{inc['location']}** — {inc['description']} "
-                    f"<span class='pill {pill_class}'>{inc['severity']}</span>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='padding:8px 0;border-bottom:1px solid var(--line)'>"
+            f"<span class='mono' style='color:var(--slate)'>{inc['time']}</span> "
+            f"<b>{inc['location']}</b> — {inc['description']} "
+            f"<span class='pill {pill_class}'>{inc['severity']}</span></div>",
+            unsafe_allow_html=True)
 
     if st.button("🤖 Generate AI crowd-safety advisory"):
         context = sd.build_context_block()
@@ -174,6 +334,7 @@ with tabs[4]:
             answer = ask_ai(system, f"VENUE DATA:\n{context}\n\nACCESSIBILITY NEED: {need}. Extra detail: {extra}")
         st.success(answer)
 
-st.markdown("---")
-st.caption("StadionAI · GenAI-powered stadium operations copilot · Built for PromptWars Challenge 4 — "
-           "Smart Stadiums & Tournament Operations (FIFA World Cup 2026)")
+st.markdown(
+    "<div class='stadium-footer'>STADIONAI · GENAI-POWERED STADIUM OPERATIONS COPILOT · "
+    "BUILT FOR PROMPTWARS CHALLENGE 4 — SMART STADIUMS &amp; TOURNAMENT OPERATIONS (FIFA WORLD CUP 2026)</div>",
+    unsafe_allow_html=True)
