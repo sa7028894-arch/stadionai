@@ -40,6 +40,19 @@ streamlit run app.py
 4. Deploy. The app works in demo mode even without a key (placeholder responses),
    but a key enables live GenAI answers across all five modules.
 
+## Quality & safety
+
+- **Testing**: `tests/` has unit coverage for the data layer and input-sanitization utilities (`pytest tests/ -v`). CI runs them automatically on every push via `.github/workflows/tests.yml`.
+- **Security**: user input is length-capped and stripped before entering any prompt; every LLM system prompt carries a prompt-injection guard; exceptions never leak internal details to the client; dependencies are pinned to exact versions.
+- **Accessibility**: crowd-density tiles carry `aria-label`s so screen readers get status without relying on color/glow; animations respect `prefers-reduced-motion`; interactive elements have visible keyboard focus outlines.
+
+## Run tests locally
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+pytest tests/ -v
+```
+
 ## Data note
 
 Crowd density, incidents, weather, and transport status are simulated for demo purposes

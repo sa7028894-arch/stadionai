@@ -2,6 +2,7 @@ import os
 import streamlit as st
 from groq import Groq
 import stadium_data as sd
+from utils import MAX_QUERY_LEN, sanitize_input as _sanitize, build_guarded_system_prompt
 
 st.set_page_config(page_title="StadionAI — Smart Stadium Copilot", page_icon="🏟️", layout="wide")
 
@@ -18,19 +19,21 @@ def ask_ai(system_prompt: str, user_prompt: str, temperature: float = 0.4, max_t
         return ("⚠️ No GROQ_API_KEY configured. Add your key in Streamlit Cloud → Settings → "
                 "Secrets as GROQ_API_KEY = \"your_key\" to enable live AI responses. "
                 "(This is a placeholder response so the UI still demos correctly.)")
+    guarded_system = build_guarded_system_prompt(system_prompt)
     try:
         resp = client.chat.completions.create(
             model=MODEL,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": guarded_system},
                 {"role": "user", "content": user_prompt},
             ],
             temperature=temperature,
             max_tokens=max_tokens,
         )
         return resp.choices[0].message.content
-    except Exception as e:
-        return f"⚠️ AI request failed: {e}"
+    except Exception:
+        # Don't leak internal exception details (stack traces, keys-in-error) to the client.
+        return "⚠️ The AI service is temporarily unavailable. Please try again in a moment."
 
 
 # ---------------------------------------------------------------------------
@@ -156,12 +159,26 @@ code, .mono { font-family: 'JetBrains Mono', monospace; }
     0%, 100% { box-shadow: 0 0 10px rgba(232,72,60,0.25); }
     50%      { box-shadow: 0 0 22px rgba(232,72,60,0.55); }
 }
+/* Respect users who have requested reduced motion (vestibular disorders, motion sensitivity) */
+@media (prefers-reduced-motion: reduce) {
+    .seat-tile.critical { animation: none; box-shadow: 0 0 18px rgba(232,72,60,0.5); }
+}
 .seat-tile .zone { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--slate); text-transform: uppercase; letter-spacing: 0.05em; }
 .seat-tile .density { font-family: 'Oswald', sans-serif; font-size: 1.9rem; font-weight: 700; margin: 4px 0; color: var(--chalk); }
 .seat-tile .status-tag { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .seat-tile.normal .status-tag   { color: var(--turf-glow); }
 .seat-tile.busy .status-tag     { color: var(--amber); }
-.seat-tile.critical .status-tag { color: var(--red); }
+.seat-tile.critical .status-tag { color: #FF8078; }
+
+/* Visible keyboard focus outline for interactive elements */
+.stButton > button:focus-visible,
+.stTextInput input:focus-visible,
+.stTextArea textarea:focus-visible,
+.stTabs [data-baseweb="tab"]:focus-visible {
+    outline: 2px solid var(--turf-glow) !important;
+    outline-offset: 2px;
+}
+
 
 .pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
 .pill-high   { background:rgba(232,72,60,0.15); color:#F0796F; border:1px solid rgba(232,72,60,0.4); }
@@ -226,8 +243,9 @@ with tabs[0]:
     col1, col2 = st.columns([2, 1])
     with col1:
         query = st.text_input("e.g. \"How do I get to Section 218 from Gate 3?\" or \"Where's the nearest first aid?\"",
-                               key="nav_query")
+                               key="nav_query", max_chars=MAX_QUERY_LEN)
         if st.button("Ask", key="nav_btn") and query:
+            query = _sanitize(query)
             context = sd.build_context_block()
             system = ("You are StadionAI, a helpful, concise wayfinding assistant for fans at a FIFA World Cup "
                       "stadium. Use ONLY the venue data provided to answer. Give clear, short, step-by-step "
@@ -252,7 +270,8 @@ with tabs[1]:
     cols = st.columns(4)
     for i, z in enumerate(zones):
         with cols[i % 4]:
-            st.markdown(f"""<div class="seat-tile {z['status']}">
+            st.markdown(f"""<div class="seat-tile {z['status']}" role="img"
+                aria-label="{z['zone']}: {z['density']} percent capacity, status {z['status']}">
                 <div class="zone">{z['zone']}</div>
                 <div class="density">{z['density']}%</div>
                 <div class="status-tag">{z['status']}</div>
@@ -284,8 +303,10 @@ with tabs[2]:
     st.subheader("Multilingual fan assistant")
     st.caption("Ask in any language — the AI detects it and replies in the same language.")
     lang_query = st.text_area("Type your question in your own language",
-                               placeholder="¿Dónde está la puerta 5? / Où sont les toilettes accessibles ? / स्टेडियम में पानी कहाँ मिलेगा?")
+                               placeholder="¿Dónde está la puerta 5? / Où sont les toilettes accessibles ? / स्टेडियम में पानी कहाँ मिलेगा?",
+                               max_chars=MAX_QUERY_LEN)
     if st.button("Send", key="lang_btn") and lang_query:
+        lang_query = _sanitize(lang_query)
         context = sd.build_context_block()
         system = ("You are StadionAI's multilingual assistant. Detect the language of the user's message and "
                   "reply fluently in THAT SAME language, using only the venue data given. Keep it concise and warm.")
@@ -325,8 +346,9 @@ with tabs[4]:
         "Accessible parking & drop-off",
         "Other accessibility request",
     ])
-    extra = st.text_input("Any extra detail? (optional)")
+    extra = st.text_input("Any extra detail? (optional)", max_chars=MAX_QUERY_LEN)
     if st.button("Get guidance"):
+        extra = _sanitize(extra)
         context = sd.build_context_block()
         system = ("You are StadionAI's accessibility assistant. Give warm, plain-language, step-by-step "
                   "guidance using only the venue data provided. Prioritize clarity and reassurance.")
